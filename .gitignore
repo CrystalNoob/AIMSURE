@@ -2,3 +2,5 @@
 .ropeproject/
 dump.txt
 test.py
+*.ipynb
+sandbox/
