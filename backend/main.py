@@ -30,7 +30,9 @@ except Exception as e:
     print(e)
     exit(1)  #  this counts as abnormal exit, right?
 
+
 # TODO: replace this with firebase DB
+# TODO : wait ahaha besok jumat last ak selesain ngurusinnnya, tutorial nya mayan panjang juga wkwkkw
 web_links: list[str] = [
     "https://www.bca.co.id/id/bisnis/produk/pinjaman-bisnis/Kredit-Usaha-Rakyat",
     "https://salamdigital.bankbsi.co.id/produk/bsi-usaha-mikro-rp-25-juta-rp-50-juta",
