@@ -4,3 +4,4 @@ dump.txt
 test.py
 *.ipynb
 sandbox/
+.env
