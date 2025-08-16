@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MessageBubble } from "@/components/MessageBubble";
 import { BankResultCard } from "@/components/BankResultCard";
 import { Button } from "@/components/ui/button";
-
+import { useRouter } from "next/navigation";
 type MessageRole = "ai" | "user";
 
 type TextMessage = {
@@ -101,6 +101,10 @@ const DUMMY_CONVERSATION: ConversationMessage[] = [
 ];
 
 export default function ChatPage() {
+  const router = useRouter();
+  const handleGenerateClick = () => {
+    router.push("/results");
+  };
   return (
     <div className="flex flex-col h-screen">
       <header className="p-4 border-b">
@@ -148,6 +152,12 @@ export default function ChatPage() {
       <footer className="flex justify-center items-center fixed bottom-0 left-0 right-0 z-30 pointer-events-none">
         <div className="container max-w-3xl px-4 py-3 pointer-events-auto">
           <div className="flex justify-end mb-2">
+            <Button
+              onClick={handleGenerateClick}
+              className="bg-aimsure-yellow hover:bg-yellow-500 text-black font-heading rounded-full"
+            >
+              Generate Documents
+            </Button>
             <Button variant="outline" className="rounded-full bg-white">
               Yes, i have. but I don&apos;t have KBLI
             </Button>

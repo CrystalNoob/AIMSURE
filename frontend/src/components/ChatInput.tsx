@@ -15,9 +15,9 @@ export function ChatInput() {
       <Button
         type="submit"
         size="icon"
-        className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full bg-aimsure-blue hover:bg-blue-800"
+        className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full bg-aimsure-blue hover:bg-blue-200"
       >
-        <Mic className="h-5 w-5" />
+        <Mic className="h-5 w-5 text-white " />
       </Button>
     </div>
   );

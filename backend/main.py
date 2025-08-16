@@ -11,6 +11,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.prompt_values import PromptValue
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+
 from langgraph.graph import START
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 from pydantic import BaseModel
@@ -24,6 +25,8 @@ from google.cloud import firestore
 from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
 
 # from langchain_core.runnables import Runnable
+
+from fastapi.middleware.cors import CORSMiddleware
 
 # ? hardcoded path, supaya ga ke overwritten sama variable dari environment os wkwk. harusny skrng .env pake google api key service account
 env_path = Path(__file__).resolve().parent / ".env"
@@ -156,6 +159,19 @@ app: FastAPI = FastAPI(
     title="AIMSURE RAG API",
 )
 
+origins = [
+    "http://localhost:3000",  # ? next js url
+    # ? add later pas deploy
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 class QueryRequest(BaseModel):
     language: str = "Bahasa Indonesia"
@@ -190,6 +206,61 @@ async def invoke_chain(session_id: str, request: QueryRequest) -> dict[str, Any]
     history_manager.add_messages(new_messages)
 
     return {"answer": final_answer}
+
+
+# ? dummy document stuffs for now
+
+
+class DocumentCustom(BaseModel):
+    name: str
+    content: str  # ? for testing -> send the document content as a string
+
+
+class DocumentResponse(BaseModel):
+    documents: list[DocumentCustom]
+
+
+@app.post("/generate-documents/{session_id}", response_model=DocumentResponse)
+async def generate_documents(session_id: str) -> dict[str, list[dict]]:
+    print(f"Generating final documents for session: {session_id}")
+    history_manager = get_session_history(session_id)
+    full_history = history_manager.messages
+
+    # ? (still testing) prompt that asks the LLM
+    generation_prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "You are an expert financial assistant. Based on the entire provided conversation history, generate three documents: a Cash Flow Statement, a Profit & Loss Statement, and a simple Business Loan Proposal. Format the output as a JSON object with a single key 'documents', which is a list of objects. Each object should have 'name' and 'content' keys.",
+            ),
+            ("human", "Here is the conversation history: {history}"),
+        ]
+    )
+
+    # For a task this big, you might want to use a more powerful model if available
+    final_doc_chain = generation_prompt | llm
+
+    response = await final_doc_chain.ainvoke({"history": full_history})
+
+    # ? mock data
+    # ? later --> response.content from the LLM
+    mock_documents = {
+        "documents": [
+            {
+                "name": "Cash Flow Statement",
+                "content": "This is the generated Cash Flow Statement...",
+            },
+            {
+                "name": "Profit & Loss Statement",
+                "content": "This is the generated Profit & Loss Statement...",
+            },
+            {
+                "name": "Loan Proposal for Bank A",
+                "content": "This is the generated Loan Proposal...",
+            },
+        ]
+    }
+    return mock_documents
 
 
 if __name__ == "__main__":
