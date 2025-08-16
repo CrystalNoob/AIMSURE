@@ -136,7 +136,7 @@ def retrieve(state: State) -> dict[str, list[Document]]:
     query_vector = embeddings.embed_query(query)
 
     # collection_ref = db.collection("bank_products_vectors") # ! use this one for real submission
-    collection_ref = db.collection("bank_products_vectors_test")
+    collection_ref = db.collection("bank_products_vectors_test_3")
 
     firestore_query = collection_ref.find_nearest(
         vector_field="embedding",
