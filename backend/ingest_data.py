@@ -5,6 +5,7 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from google.cloud import firestore
 import firebase_admin
 from pathlib import Path
+from google.cloud.firestore_v1.vector import Vector
 
 # ! RUN THIS FILE IF NEEDED . IDEALLY every time ada update aja
 print("Starting data ingestion...")
@@ -37,6 +38,7 @@ web_links = [
     "https://www.bca.co.id/id/bisnis/produk/pinjaman-bisnis/Kredit-Usaha-Rakyat",
     "https://salamdigital.bankbsi.co.id/produk/bsi-usaha-mikro-rp-25-juta-rp-50-juta",
     "https://eform.bni.co.id/BNI_eForm/disclaimerPenawaran",
+    # "https://www.bankmandiri.co.id/kredit-usaha-mikro",
 ]
 loader = WebBaseLoader(web_paths=web_links)
 docs = loader.load()
@@ -45,7 +47,8 @@ text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20
 all_splits = text_splitter.split_documents(docs)
 print(f"Loaded and split {len(all_splits)} document chunks.")
 
-collection_name = "bank_products_vectors_test"
+# collection_name = "bank_products_vectors_test"
+collection_name = "bank_products_vectors_test_2"
 batch = db.batch()
 count = 0
 
@@ -55,7 +58,10 @@ for doc in all_splits:
 
     try:
         embedding_vector = embeddings.embed_query(content)
-
+        # embedding_vector = embedding_vector
+        embedding_vector = Vector(
+            embedding_vector
+        )  # ! TURNS OUT I NEED TO ALSO VECTORIZED THIS. OMG OMG OMG.
         firestore_doc = {
             "content": content,
             "metadata": metadata,
