@@ -15,8 +15,29 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langgraph.graph import START
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 from pydantic import BaseModel
+from langchain_core.tools import tool
+from pathlib import Path
 
-_ = load_dotenv()
+# * new stuffs for chat history
+from ai.history import get_session_history
+
+# ? hardcoded path, supaya ga ke overwritten sama variable dari environment os wkwk. harusny skrng .env pake google api key service account
+env_path = Path(__file__).resolve().parent / ".env"
+try:
+    if env_path.exists():
+        loaded = load_dotenv(dotenv_path=str(env_path))
+        print(f"Loaded .env from {env_path}")
+        if not loaded:
+            print(f"Warning: .env found at {env_path} but load_dotenv returned False.")
+    else:
+        print(
+            f".env not found at {env_path}, attempting default load from current working directory."
+        )
+        loaded = load_dotenv()
+        if not loaded:
+            print("Warning: no .env loaded from current working directory.")
+except Exception as e:
+    print(f"Error loading .env: {e}")
 
 if not os.environ.get("GOOGLE_API_KEY"):
     raise ValueError("GOOGLE_API_KEY environment variable not set!")
@@ -89,13 +110,41 @@ class State(TypedDict):
     answer: str
 
 
+# def retrieve(state: State) -> dict[str, list[Document]]:
+#     """
+#     Retrieve contexts from the vector store
+#     """
+#     print(f"Retrieving documents for question: {state['question']}")
+#     retrieved_docs: list[Document] = retriever.invoke(state["question"])
+#     return {"context": retrieved_docs}
+
+
+# TODO : still experimental, kinda hybrid between part 1 (above) and the new one from part 2 (below). (must test)
 def retrieve(state: State) -> dict[str, list[Document]]:
     """
-    Retrieve contexts from the vector store
+    Retrieve contexts from the vector store based on the question in the state.
     """
     print(f"Retrieving documents for question: {state['question']}")
-    retrieved_docs: list[Document] = retriever.invoke(state["question"])
+
+    # ?  query from the input state dictionary
+    query = state["question"]
+
+    # ? use your new, better logic to get the documents
+    retrieved_docs = vector_store.similarity_search(query, k=2)
+
     return {"context": retrieved_docs}
+
+
+# TODO: implement below if possible sempet (from rag part 2) --> want to check if @tool really necessary
+# @tool(response_format="content_and_artifact")
+# def retrieve(query: str):
+#     """Retrieve information related to a query."""
+#     retrieved_docs = vector_store.similarity_search(query, k=2)
+#     serialized = "\n\n".join(
+#         (f"Source: {doc.metadata}\nContent: {doc.page_content}")
+#         for doc in retrieved_docs
+#     )
+#     return serialized, retrieved_docs
 
 
 def generate(state: State) -> dict[str, Union[str, list[Union[str, dict]]]]:
@@ -132,33 +181,36 @@ app: FastAPI = FastAPI(
 class QueryRequest(BaseModel):
     language: str = "Bahasa Indonesia"
     question: str
-    history: list[list[str]] | None = None
+    # history: list[list[str]] | None = None  # ? removed, as we have our own history management now
 
 
 class QueryResponse(BaseModel):
     answer: str
 
 
-@app.post("/invoke", response_model=QueryResponse)
-async def invoke_chain(request: QueryRequest) -> dict[str, Any]:
-    hist: list[BaseMessage] = []
-    if request.history:
-        for sender, text in request.history:
-            if sender == "user":
-                hist.append(HumanMessage(content=text))
-            elif sender == "bot":
-                hist.append(AIMessage(content=text))
-
+@app.post("/invoke/{session_id}", response_model=QueryResponse)  # ? <-- new session_id
+# ?  new  arguments and logic also
+async def invoke_chain(session_id: str, request: QueryRequest) -> dict[str, Any]:
+    history_manager = get_session_history(session_id)
+    previous_messages = history_manager.messages
     initial_state: State = {
         "language": request.language,
         "question": request.question,
-        "history": hist,
+        "history": previous_messages,  # ? new hehe
         "context": [],
         "answer": "",
     }
 
     result: dict[str, Any] | Any = graph.invoke(initial_state)
-    return {"answer": result.get("answer", "Sorry, I couldn't find an answer.")}
+    final_answer = result.get("answer", "Sorry I couldn't find an answer")
+
+    new_messages = [
+        HumanMessage(content=request.question),
+        AIMessage(content=final_answer),
+    ]
+    history_manager.add_messages(new_messages)
+
+    return {"answer": final_answer}
 
 
 if __name__ == "__main__":

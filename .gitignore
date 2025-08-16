@@ -7,3 +7,4 @@ sandbox/
 .env
 .vscode/
 __pycache__/
+aimsure*.json
