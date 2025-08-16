@@ -22,7 +22,8 @@ from google.cloud.firestore_v1.vector import Vector
 from langchain_core.documents import Document
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
-from langchain_core.runnables import Runnable
+
+# from langchain_core.runnables import Runnable
 
 # ? hardcoded path, supaya ga ke overwritten sama variable dari environment os wkwk. harusny skrng .env pake google api key service account
 env_path = Path(__file__).resolve().parent / ".env"
@@ -61,30 +62,6 @@ template: str = textwrap.dedent(
     Jika nama Bank tidak ada di `context`, katakan Bank tidak ada di basis data dan berhenti."""
 )
 
-
-# REPHRASE_TEMPLATE = """Berdasarkan riwayat percakapan berikut dan pertanyaan terakhir, formulasikan sebuah search query yang berdiri sendiri.
-# Search query ini harus bisa dipahami tanpa melihat riwayat percakapan.
-# Jangan menjawab pertanyaan, hanya formulasikan ulang menjadi search query yang lebih baik.
-
-# Chat History:
-# {history}
-
-# Follow Up Input: {question}
-# Standalone Search Query:"""
-
-# REPHRASE_PROMPT_TEMPLATE: ChatPromptTemplate = ChatPromptTemplate.from_messages(
-#     [
-#         (
-#             "system",
-#             REPHRASE_TEMPLATE,
-#         ),
-#         MessagesPlaceholder(variable_name="history"),
-#         (
-#             "human",
-#             "Language: {language}\nQuestion: {question}\nHistory: {history}\nContext: {context}",
-#         ),
-#     ]
-# )
 prompt_template: ChatPromptTemplate = ChatPromptTemplate.from_messages(
     [
         (
@@ -106,24 +83,6 @@ class State(TypedDict):
     history: list[BaseMessage]
     context: list[Document]
     answer: str
-
-
-# def transform_query(state: State) -> dict[str, Any]:
-
-#     print("Transforming query...")
-#     query_transformer: Runnable = REPHRASE_PROMPT_TEMPLATE | llm
-#     context_str = "".join(doc.page_content for doc in state.get("context", []))
-
-#     better_query_message = query_transformer.invoke(
-#         {
-#             "history": state["history"],
-#             "question": state["question"],
-#             "language": state["language"],
-#             "context": context_str,
-#         }
-#     )
-
-#     return {"question": better_query_message.content}
 
 
 def retrieve(state: State) -> dict[str, list[Document]]:
@@ -180,37 +139,12 @@ def generate(state: State) -> dict[str, Union[str, list[Union[str, dict]]]]:
     return {"answer": content}
 
 
-# def generate(state: State) -> dict[str, Union[str, list[Union[str, dict]]]]:
-#     """
-#     Generate answer based on the retreived context
-#     """
-#     docs_content: str = "".join(doc.page_content for doc in state["context"])
-#     prompt: PromptValue = REPHRASE_PROMPT_TEMPLATE.invoke(
-#         {
-#             "language": state["language"],
-#             "question": state["question"],
-#             "context": docs_content,
-#             "history": state["history"],
-#         }
-#     )
-#     response: BaseMessage = llm.invoke(prompt)
-#     content: Union[str, list[Union[str, dict]]] = response.content
-#     return {"answer": content}
-
-
 graph_builder: StateGraph[State] = StateGraph(State)
 _ = graph_builder.add_node("retrieve", retrieve)
 _ = graph_builder.add_node("generate", generate)
 _ = graph_builder.add_edge(START, "retrieve")
 _ = graph_builder.add_edge("retrieve", "generate")
 
-# graph_builder: StateGraph[State] = StateGraph(State)
-# graph_builder.add_node("transform_query", transform_query)
-# graph_builder.add_node("retrieve", retrieve)
-# graph_builder.add_node("generate", generate)
-# graph_builder.add_edge(START, "transform_query")
-# graph_builder.add_edge("transform_query", "retrieve")
-# graph_builder.add_edge("retrieve", "generate")
 
 graph: CompiledStateGraph = graph_builder.compile()
 
