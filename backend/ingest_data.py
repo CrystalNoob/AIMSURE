@@ -38,7 +38,12 @@ web_links = [
     "https://www.bca.co.id/id/bisnis/produk/pinjaman-bisnis/Kredit-Usaha-Rakyat",
     "https://salamdigital.bankbsi.co.id/produk/bsi-usaha-mikro-rp-25-juta-rp-50-juta",
     "https://eform.bni.co.id/BNI_eForm/disclaimerPenawaran",
-    # "https://www.bankmandiri.co.id/kredit-usaha-mikro",
+    # "https://www.bankmandiri.co.id/kredit-usaha-mikro", # ? for some reason, mandiri links wont work?
+    # "https://www.bankmandiri.co.id/kredit-usaha-rakyat-kur",  # ? for some reason, mandiri links wont work?
+    "https://www.btn.co.id/id/Business/Produk-Komersial/Kredit-Usaha-Mikro-Kecil-Menengah/Kredit-UMKM-Modal-Kerja",
+    "https://bri.co.id/kur",
+    "https://bri.co.id/kupedes",
+    "https://bri.co.id/kredit-investasi",
 ]
 loader = WebBaseLoader(web_paths=web_links)
 docs = loader.load()
@@ -47,8 +52,9 @@ text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20
 all_splits = text_splitter.split_documents(docs)
 print(f"Loaded and split {len(all_splits)} document chunks.")
 
-# collection_name = "bank_products_vectors_test"
-collection_name = "bank_products_vectors_test_2"
+# collection_name = "bank_products_vectors_test" # ! failed
+# collection_name = "bank_products_vectors_test_2" # ? bca, bsi, bni
+collection_name = "bank_products_vectors_test_3"  # ? bca, bsi, bni, btn, bri
 batch = db.batch()
 count = 0
 
