@@ -8,3 +8,4 @@ sandbox/
 .vscode/
 __pycache__/
 aimsure*.json
+*.txt

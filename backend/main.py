@@ -4,22 +4,25 @@ import uvicorn
 from typing import TypedDict, Union, Any
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from langchain_community.document_loaders import WebBaseLoader
+
+# from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.documents import Document
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.prompt_values import PromptValue
-from langchain_core.vectorstores import InMemoryVectorStore, VectorStoreRetriever
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langgraph.graph import START
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 from pydantic import BaseModel
-from langchain_core.tools import tool
 from pathlib import Path
 
 # * new stuffs for chat history
 from ai.history import get_session_history
+from google.cloud.firestore_v1.vector import Vector
+from langchain_core.documents import Document
+from google.cloud import firestore
+from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
+from langchain_core.runnables import Runnable
 
 # ? hardcoded path, supaya ga ke overwritten sama variable dari environment os wkwk. harusny skrng .env pake google api key service account
 env_path = Path(__file__).resolve().parent / ".env"
@@ -44,41 +47,12 @@ if not os.environ.get("GOOGLE_API_KEY"):
 
 try:
     llm: ChatGoogleGenerativeAI = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
-    embeddings: GoogleGenerativeAIEmbeddings = GoogleGenerativeAIEmbeddings(
-        model="gemini-embedding-001"
-    )
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    db = firestore.Client()
+
 except Exception as e:
     print(e)
     exit(1)  #  this counts as abnormal exit, right?
-
-
-# TODO: replace this with firebase DB
-# TODO : wait ahaha besok jumat last ak selesain ngurusinnnya, tutorial nya mayan panjang juga wkwkkw
-web_links: list[str] = [
-    "https://www.bca.co.id/id/bisnis/produk/pinjaman-bisnis/Kredit-Usaha-Rakyat",
-    "https://salamdigital.bankbsi.co.id/produk/bsi-usaha-mikro-rp-25-juta-rp-50-juta",
-    "https://eform.bni.co.id/BNI_eForm/disclaimerPenawaran",
-]
-
-loader: WebBaseLoader = WebBaseLoader(web_paths=web_links)
-docs: list[Document] = loader.load()
-
-text_splitter: RecursiveCharacterTextSplitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=200,
-    add_start_index=True,
-)
-all_splits: list[Document] = text_splitter.split_documents(docs)
-
-vector_store: InMemoryVectorStore = InMemoryVectorStore(embedding=embeddings)
-_ = vector_store.add_documents(documents=all_splits)
-retriever: VectorStoreRetriever = vector_store.as_retriever(
-    search_type="mmr",
-    search_kwargs={
-        "k": 6,
-        "lambda_mult": 0.25,
-    },
-)
 
 
 template: str = textwrap.dedent(
@@ -87,6 +61,30 @@ template: str = textwrap.dedent(
     Jika nama Bank tidak ada di `context`, katakan Bank tidak ada di basis data dan berhenti."""
 )
 
+
+# REPHRASE_TEMPLATE = """Berdasarkan riwayat percakapan berikut dan pertanyaan terakhir, formulasikan sebuah search query yang berdiri sendiri.
+# Search query ini harus bisa dipahami tanpa melihat riwayat percakapan.
+# Jangan menjawab pertanyaan, hanya formulasikan ulang menjadi search query yang lebih baik.
+
+# Chat History:
+# {history}
+
+# Follow Up Input: {question}
+# Standalone Search Query:"""
+
+# REPHRASE_PROMPT_TEMPLATE: ChatPromptTemplate = ChatPromptTemplate.from_messages(
+#     [
+#         (
+#             "system",
+#             REPHRASE_TEMPLATE,
+#         ),
+#         MessagesPlaceholder(variable_name="history"),
+#         (
+#             "human",
+#             "Language: {language}\nQuestion: {question}\nHistory: {history}\nContext: {context}",
+#         ),
+#     ]
+# )
 prompt_template: ChatPromptTemplate = ChatPromptTemplate.from_messages(
     [
         (
@@ -110,41 +108,58 @@ class State(TypedDict):
     answer: str
 
 
-# def retrieve(state: State) -> dict[str, list[Document]]:
-#     """
-#     Retrieve contexts from the vector store
-#     """
-#     print(f"Retrieving documents for question: {state['question']}")
-#     retrieved_docs: list[Document] = retriever.invoke(state["question"])
-#     return {"context": retrieved_docs}
+# def transform_query(state: State) -> dict[str, Any]:
+
+#     print("Transforming query...")
+#     query_transformer: Runnable = REPHRASE_PROMPT_TEMPLATE | llm
+#     context_str = "".join(doc.page_content for doc in state.get("context", []))
+
+#     better_query_message = query_transformer.invoke(
+#         {
+#             "history": state["history"],
+#             "question": state["question"],
+#             "language": state["language"],
+#             "context": context_str,
+#         }
+#     )
+
+#     return {"question": better_query_message.content}
 
 
-# TODO : still experimental, kinda hybrid between part 1 (above) and the new one from part 2 (below). (must test)
 def retrieve(state: State) -> dict[str, list[Document]]:
     """
-    Retrieve contexts from the vector store based on the question in the state.
+    Retrieve contexts from the Firestore vector store.
     """
     print(f"Retrieving documents for question: {state['question']}")
-
-    # ?  query from the input state dictionary
     query = state["question"]
 
-    # ? use your new, better logic to get the documents
-    retrieved_docs = vector_store.similarity_search(query, k=2)
+    query_vector = embeddings.embed_query(query)
 
+    # collection_ref = db.collection("bank_products_vectors") # ! use this one for real submission
+    collection_ref = db.collection("bank_products_vectors_test")
+
+    firestore_query = collection_ref.find_nearest(
+        vector_field="embedding",
+        query_vector=Vector(query_vector),
+        distance_measure=DistanceMeasure.EUCLIDEAN,
+        limit=5,  # ? how many documents to retrieve
+    )
+
+    firestore_docs = firestore_query.get()
+    print("DOCS RETRIEVED FROM FIRESTORE:")
+    # ? convert the firestore documents back into dangchain document objects
+    retrieved_docs = []
+    for doc in firestore_docs:
+        doc_dict = doc.to_dict()
+        if doc_dict:
+            print(f"-> Source: {doc_dict.get('metadata', {}).get('source')}")
+            retrieved_docs.append(
+                Document(
+                    page_content=doc_dict.get("content", ""),
+                    metadata=doc_dict.get("metadata", {}),
+                )
+            )
     return {"context": retrieved_docs}
-
-
-# TODO: implement below if possible sempet (from rag part 2) --> want to check if @tool really necessary
-# @tool(response_format="content_and_artifact")
-# def retrieve(query: str):
-#     """Retrieve information related to a query."""
-#     retrieved_docs = vector_store.similarity_search(query, k=2)
-#     serialized = "\n\n".join(
-#         (f"Source: {doc.metadata}\nContent: {doc.page_content}")
-#         for doc in retrieved_docs
-#     )
-#     return serialized, retrieved_docs
 
 
 def generate(state: State) -> dict[str, Union[str, list[Union[str, dict]]]]:
@@ -165,11 +180,41 @@ def generate(state: State) -> dict[str, Union[str, list[Union[str, dict]]]]:
     return {"answer": content}
 
 
+# def generate(state: State) -> dict[str, Union[str, list[Union[str, dict]]]]:
+#     """
+#     Generate answer based on the retreived context
+#     """
+#     docs_content: str = "".join(doc.page_content for doc in state["context"])
+#     prompt: PromptValue = REPHRASE_PROMPT_TEMPLATE.invoke(
+#         {
+#             "language": state["language"],
+#             "question": state["question"],
+#             "context": docs_content,
+#             "history": state["history"],
+#         }
+#     )
+#     response: BaseMessage = llm.invoke(prompt)
+#     content: Union[str, list[Union[str, dict]]] = response.content
+#     return {"answer": content}
+
+
 graph_builder: StateGraph[State] = StateGraph(State)
 _ = graph_builder.add_node("retrieve", retrieve)
 _ = graph_builder.add_node("generate", generate)
 _ = graph_builder.add_edge(START, "retrieve")
 _ = graph_builder.add_edge("retrieve", "generate")
+
+# graph_builder: StateGraph[State] = StateGraph(State)
+# graph_builder.add_node("transform_query", transform_query)
+# graph_builder.add_node("retrieve", retrieve)
+# graph_builder.add_node("generate", generate)
+# graph_builder.add_edge(START, "transform_query")
+# graph_builder.add_edge("transform_query", "retrieve")
+# graph_builder.add_edge("retrieve", "generate")
+
+graph: CompiledStateGraph = graph_builder.compile()
+
+
 # TODO: add memory
 graph: CompiledStateGraph = graph_builder.compile()
 
