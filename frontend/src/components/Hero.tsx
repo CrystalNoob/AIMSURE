@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-
+import Link from "next/link";
 export function Hero() {
   return (
     <main className="container mx-auto py-16 px-8">
@@ -15,10 +15,10 @@ export function Hero() {
             time. Skip the hassle. Focus on growing your business.
           </p>
           <div className="flex flex-col items-start space-y-4 w-full">
-            <Input
-              placeholder="| Start Chatting Now!"
-              className="font-lato w-full "
-            />
+            <Link href="/chat" className="flex-grow  w-full">
+              <Input placeholder="Start Chatting Now!" className="font-lato " />
+            </Link>
+
             <Button className="bg-aimsure-yellow hover:bg-yellow-500 font-montserrat font-bold">
               See How It Works
             </Button>
