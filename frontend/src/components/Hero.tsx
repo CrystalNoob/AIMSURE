@@ -74,12 +74,21 @@ export function Hero() {
             time. Skip the hassle. Focus on growing your business.
           </p>
           <div className="flex flex-col items-start space-y-4 w-full">
-            <Link href="/chat" className="flex-grow w-full">
-              <Input
-                placeholder={placeholderText}
-                className="font-lato transition-all duration-300 ease-in-out"
-              />
-            </Link>
+            <div className="flex items-center justify-between w-full p-1 border-2 border-gray-200 rounded-lg bg-white focus-within:ring-2 focus-within:ring-aimsure-yellow transition-all duration-300">
+              <p className="font-lato text-gray-500 px-3 truncate">
+                {placeholderText}
+              </p>
+              <Link href="/chat">
+                <Button
+                  className="
+                text-aimsure-white
+                bg-aimsure-lavender hover:bg-aimsure-blue font-montserrat font-bold flex-shrink-0"
+                >
+                  Start Chatting Now
+                </Button>
+              </Link>
+            </div>
+
             <Link href="#features" className="flex-grow w-full">
               <Button className="bg-aimsure-yellow hover:bg-yellow-500 font-montserrat font-bold">
                 See How It Works
