@@ -56,11 +56,13 @@ export function Features() {
 
               <AccordionItem value="item-3">
                 <AccordionTrigger className="font-heading text-xl">
-                  Core Feature #3
+                  Document Generation
                 </AccordionTrigger>
                 <AccordionContent className="font-sans text-base">
-                  Description for the third core feature goes here. Explain what
-                  makes it valuable for the user.
+                  No more chasing templates or guessing what’s required. Once
+                  your details are in, the system instantly generates complete,
+                  bank-ready documents, ready to submit without extra
+                  formatting.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
