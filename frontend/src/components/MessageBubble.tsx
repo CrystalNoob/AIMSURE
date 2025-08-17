@@ -23,25 +23,16 @@ export function MessageBubble({ role, text }: MessageBubbleProps) {
           </AvatarFallback>
         </Avatar>
       )}
-      {/* Message Content */}
+      {/* ? content */}
       <div
         className={`whitespace-pre-wrap ${
           isUser
             ? "max-w-md rounded-2xl p-4 bg-aimsure-blue text-white rounded-br-none"
-            : "w-full text-black pt-1" // No bubble, full-width for AI
+            : "w-full text-black pt-1"
         }`}
       >
         <p className="font-sans">{text}</p>
       </div>
-
-      {/* User Avatar */}
-      {isUser && (
-        <Avatar className="w-10 h-10 border">
-          <AvatarFallback className="bg-orange-500 text-white font-bold">
-            J
-          </AvatarFallback>
-        </Avatar>
-      )}
     </div>
   );
 }

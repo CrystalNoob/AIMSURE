@@ -6,9 +6,10 @@ import { MessageBubble } from "@/components/MessageBubble";
 import { BankResultCard } from "@/components/BankResultCard";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 type MessageRole = "ai" | "user";
-
 type TextMessage = {
   role: MessageRole;
   type: "text";
@@ -37,85 +38,161 @@ type BankResultsMessage = {
   };
 };
 
-type ConversationMessage = TextMessage | ChecklistMessage | BankResultsMessage;
+const INITIAL_MESSAGE: ConversationMessage = {
+  role: "ai",
+  type: "checklist",
+  content: [
+    "Hi! First, let's check what information you already have so I can prepare the right document template.",
+    "So, do you have this documents?",
+    "• Do you have a National ID (NIK)?",
+    "• Do you have a Tax Number (NPWP)?",
+    "• Do you have a Business Identification Number (NIB) or Business License (SIUP)?",
+    "• Do you know your KBLI code (business classification code)?",
+  ],
+};
 
-const DUMMY_CONVERSATION: ConversationMessage[] = [
-  {
-    role: "ai",
-    type: "checklist",
-    content: [
-      "Hi! First, let's check what information you already have so I can prepare the right document template.",
-      "So, do you have this documents?",
-      "• Do you have a National ID (NIK)?",
-      "• Do you have a Tax Number (NPWP)?",
-      "• Do you have a Business Identification Number (NIB) or Business License (SIUP)?",
-      "• Do you know your KBLI code (business classification code)?",
-    ],
-  },
-  {
-    role: "user",
-    type: "text",
-    content: "Yes, i have. but I don't have KBLI",
-  },
-  {
-    role: "ai",
-    type: "text",
-    content:
-      "That's all I need, please hold on a moment and let the magic happens",
-  },
-  {
-    role: "ai",
-    type: "bank_results",
-    content: {
-      intro:
-        "Based on your business profile and loan request, I've found some banks that are the best match for you. Let me show you the details so you can compare easily:",
-      cards: [
-        {
-          bankName: "Bank BCA",
-          productName: "Kur Mikro",
-          logoUrl: "/banks/BCA-1.png",
-          details: [
-            "Target: Small businesses with annual turnover ≤ IDR 2.5B",
-            "Max Loan: IDR 100M",
-            "Interest: 6% p.a.",
-            "Tenor: up to 3 years",
-            "Eligibility: Business running ≥ 6 months, revenue ≥ IDR 50M/year",
-            "Required Docs: NIK, Business License (optional), Bank Statements",
-          ],
-        },
-        {
-          bankName: "Bank BRI",
-          productName: "Kupedes",
-          logoUrl: "/banks/BRI-1.png",
-          details: [
-            "Target: Small businesses with annual turnover ≤ IDR 2.5B",
-            "Max Loan: IDR 100M",
-            "Interest: 6% p.a.",
-            "Tenor: up to 3 years",
-            "Eligibility: Business running ≥ 6 months, revenue ≥ IDR 50M/year",
-            "Required Docs: NIK, Business License (optional), Bank Statements",
-          ],
-        },
-      ],
-    },
-  },
-];
+type ConversationMessage = TextMessage | ChecklistMessage | BankResultsMessage;
 
 export default function ChatPage() {
   const router = useRouter();
+
+  const [messages, setMessages] = useState<ConversationMessage[]>([
+    INITIAL_MESSAGE,
+  ]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionId] = useState(() => uuidv4());
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const question = inputValue.trim();
+    if (!question) return;
+
+    const userMessage: ConversationMessage = {
+      role: "user",
+      type: "text",
+      content: question,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+    setIsLoading(true);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiUrl}/invoke/${sessionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // IMPORTANT: Here we assume the backend returns a simple text response.
+      // We will need to update this later if the backend can return complex types like checklists or cards.
+      const aiMessage: ConversationMessage = {
+        role: "ai",
+        type: "text",
+        content: data.answer,
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error("Failed to get response from AI:", error);
+      const errorMsg: ConversationMessage = {
+        role: "ai",
+        type: "text",
+        content: "Sorry, I ran into an error. Please try again.",
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   const question = inputValue.trim();
+  //   if (!question || isLoading) return;
+
+  //   const userMessage: ConversationMessage = {
+  //     role: "user",
+  //     type: "text",
+  //     content: question,
+  //   };
+  //   setMessages((prev) => [...prev, userMessage]);
+  //   setInputValue("");
+  //   setIsLoading(true);
+
+  //   // Add a placeholder for the AI's response
+  //   const aiMessagePlaceholder: ConversationMessage = {
+  //     role: "ai",
+  //     type: "text",
+  //     content: "",
+  //   };
+  //   setMessages((prev) => [...prev, aiMessagePlaceholder]);
+
+  //   try {
+  //     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  //     const response = await fetch(`${apiUrl}/invoke/${sessionId}`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ question }),
+  //     });
+
+  //     if (!response.body) {
+  //       throw new Error("Response body is null");
+  //     }
+
+  //     const reader = response.body.getReader();
+  //     const decoder = new TextDecoder();
+
+  //     // Read the stream
+  //     while (true) {
+  //       const { done, value } = await reader.read();
+  //       if (done) {
+  //         break;
+  //       }
+  //       const chunk = decoder.decode(value);
+  //       // Update the last message (the AI placeholder) with the new chunk
+  //       setMessages((prev) => {
+  //         const lastMessage = prev[prev.length - 1];
+  //         if (lastMessage && lastMessage.role === "ai") {
+  //           lastMessage.content += chunk;
+  //           return [...prev.slice(0, -1), lastMessage];
+  //         }
+  //         return prev;
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to read stream:", error);
+  //     setMessages((prev) => {
+  //       const lastMessage = prev[prev.length - 1];
+  //       if (lastMessage && lastMessage.role === "ai") {
+  //         lastMessage.content = "Sorry, I ran into an error.";
+  //         return [...prev.slice(0, -1), lastMessage];
+  //       }
+  //       return prev;
+  //     });
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const handleGenerateClick = () => {
     router.push("/results");
   };
 
   const shouldShowGenerateButton = useMemo(() => {
-    const lastMessage = DUMMY_CONVERSATION[DUMMY_CONVERSATION.length - 1];
+    const lastMessage = messages[messages.length - 1];
     return lastMessage?.type === "bank_results";
-  }, []); // ? Note: DUMMY_CONVERSATION would be state and in the dependency array in the production
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-screen bg-white">
       <header className="border-none shrink-0">
-        <div className="container max-w-3xl  p-4">
+        <div className="container max-w-3xl p-4">
           <Link
             href="/"
             className="flex items-center space-x-2 text-gray-500 hover:text-aimsure-blue"
@@ -126,10 +203,9 @@ export default function ChatPage() {
         </div>
       </header>
 
-      {/* 2. Main chat content area with a softer fade */}
-      <div className="flex-1 overflow-y-auto ">
+      <div className="flex-1 overflow-y-auto">
         <main className="container max-w-3xl mx-auto pt-6 pb-24 space-y-6">
-          {DUMMY_CONVERSATION.map((msg, index) => {
+          {messages.map((msg, index) => {
             switch (msg.type) {
               case "text":
                 return (
@@ -167,6 +243,7 @@ export default function ChatPage() {
                 return null;
             }
           })}
+          {isLoading && <ThinkingIndicator />}
         </main>
       </div>
 
@@ -182,7 +259,13 @@ export default function ChatPage() {
               </Button>
             </div>
           )}
-          <ChatInput />
+          <form onSubmit={handleSubmit}>
+            <ChatInput
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              disabled={isLoading}
+            />
+          </form>
         </div>
       </footer>
     </div>

@@ -25,10 +25,37 @@
   width: calc((180px * 10) + (4rem * 10));
   animation: scroll 30s linear infinite;
 }
-.animate-scroll:hover {
+/* .animate-scroll:hover {
   animation-play-state: paused;
-}
+} */
 
 html {
   scroll-behavior: smooth;
+}
+
+@keyframes gradient-xy {
+  0%,
+  100% {
+    background-size: 200% 200%;
+    background-position: left center;
+  }
+  50% {
+    background-size: 200% 200%;
+    background-position: right center;
+  }
+}
+
+@keyframes text-gradient {
+  to {
+    background-position: -200% center;
+  }
+}
+
+.animate-gradient-xy {
+  animation: gradient-xy 6s ease infinite;
+}
+
+.animate-text-gradient {
+  background-size: 200% auto;
+  animation: text-gradient 2s linear infinite;
 }
