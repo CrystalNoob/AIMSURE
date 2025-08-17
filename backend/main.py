@@ -286,7 +286,8 @@ app: FastAPI = FastAPI(
 
 origins = [
     "http://localhost:3000",  # ? next js url
-    # ? add later pas deploy
+    # ? add later pas deploy,
+    "https://aimsure.vercel.app/",
 ]
 
 app.add_middleware(
