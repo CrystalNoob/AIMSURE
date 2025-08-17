@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { AvatarImage } from "@radix-ui/react-avatar";
 
 type MessageBubbleProps = {
   role: "ai" | "user";
@@ -10,26 +11,24 @@ export function MessageBubble({ role, text }: MessageBubbleProps) {
 
   return (
     <div
-      className={`flex items-start gap-3 ${
-        isUser ? "justify-end" : "justify-start"
+      className={`flex items-start ${
+        isUser ? "justify-end gap-3" : "justify-start"
       }`}
     >
-      {/* AI Avatar */}
       {!isUser && (
-        <Avatar className="w-10 h-10 border">
-          {/* You can replace this with an Image of your AI logo */}
+        <Avatar className="w-10 h-10 border-none mr-6">
+          <AvatarImage src="/Logo Chatbot.png" alt="AI Avatar" />
           <AvatarFallback className="bg-aimsure-blue text-white font-bold">
             AI
           </AvatarFallback>
         </Avatar>
       )}
-
       {/* Message Content */}
       <div
-        className={`max-w-md rounded-2xl p-4 whitespace-pre-wrap ${
+        className={`whitespace-pre-wrap ${
           isUser
-            ? "bg-aimsure-blue text-white rounded-br-none"
-            : "bg-gray-100 text-black rounded-bl-none"
+            ? "max-w-md rounded-2xl p-4 bg-aimsure-blue text-white rounded-br-none"
+            : "w-full text-black pt-1" // No bubble, full-width for AI
         }`}
       >
         <p className="font-sans">{text}</p>
@@ -38,7 +37,6 @@ export function MessageBubble({ role, text }: MessageBubbleProps) {
       {/* User Avatar */}
       {isUser && (
         <Avatar className="w-10 h-10 border">
-          {/* You can change the fallback letter */}
           <AvatarFallback className="bg-orange-500 text-white font-bold">
             J
           </AvatarFallback>

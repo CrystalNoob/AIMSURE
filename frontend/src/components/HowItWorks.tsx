@@ -1,31 +1,25 @@
 import Image from "next/image";
-import { PlayIcon } from "lucide-react"; // A nice icon for the play button
+import { PlayIcon } from "lucide-react";
 
 export function HowItWorks() {
   return (
-    // The main container with the blue background
     <section id="how-to-use" className="bg-aimsure-blue py-20 px-8 text-white">
       <div className="container mx-auto flex flex-col items-center space-y-8">
-        {/* Headline with Logo */}
-        <h2 className="flex items-center space-x-4 text-4xl font-bold font-heading">
-          <span>Stay Sure with</span>
-          {/* Using the logo path you provided */}
+        <h2 className="flex  font-lato items-center space-x-4 text-4xl font-bold font-heading">
+          <span className="text-aimsure-yellow">Stay Sure with</span>
           <Image
-            src="/logo/aimsure-logo.svg"
+            src="/logo/Logo AIMSURE 1.png"
             alt="AIMSure Logo"
-            width={150}
-            height={40}
+            width={400}
+            height={400}
           />
         </h2>
 
-        {/* Video Player Area */}
         <div className="w-full max-w-3xl space-y-4">
-          {/* The main white box for the video */}
           <div className="aspect-video w-full bg-white rounded-2xl shadow-lg flex justify-center items-center">
             <p className="font-sans text-gray-400">Video Player Placeholder</p>
           </div>
 
-          {/* The player controls below the box */}
           <div className="flex items-center w-full space-x-4 px-2">
             <PlayIcon className="h-6 w-6 text-white cursor-pointer" />
             <div className="flex-grow h-1 bg-white/30 rounded-full relative">

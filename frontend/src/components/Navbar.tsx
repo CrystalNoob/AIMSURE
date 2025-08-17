@@ -1,4 +1,3 @@
-// in components/Navbar.tsx
 import Image from "next/image";
 import Link from "next/link";
 
@@ -11,9 +10,9 @@ export function Navbar() {
           className="font-heading text-2xl font-bold text-aimsure-white"
         >
           <Image
-            width={100}
-            height={100}
-            src="/logo/aimsure-logo.svg"
+            width={150}
+            height={150}
+            src="/logo/Logo AIMSURE 1.png"
             alt="AIMSure Logo"
             className="h-auto w-auto"
           />

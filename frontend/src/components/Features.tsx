@@ -18,7 +18,6 @@ export function Features() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           {/* Left Side: Graphic */}
           <div>
-            {/* Placeholder for your graphic. You can replace this with an <Image> component */}
             <div className="w-full h-64 bg-slate-200 rounded-lg flex justify-center items-center">
               <p className="text-gray-500">Graphic Asset Here</p>
             </div>

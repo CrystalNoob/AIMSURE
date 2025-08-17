@@ -15,14 +15,14 @@ function LoadingScreen() {
     <div className="flex flex-col justify-center items-center h-full space-y-4">
       <div className="w-32 h-32 animate-spin-slow">
         <Image
-          src="/logo/aimsure-logo.svg"
+          src="/logo/Logo Loading.png"
           alt="AIMSURE Logo"
           width={128}
           height={128}
         />
       </div>
       <h1 className="text-3xl font-heading font-bold">Preparing Documents</h1>
-      <p className="font-sans">
+      <p className="font-lato">
         Please wait a moment while I generate your documents!
       </p>
     </div>
@@ -64,7 +64,7 @@ export default function ResultsPage() {
         <div className="container mx-auto">
           <div className="flex justify-center mb-8">
             <Image
-              src="/logo/aimsure-logo.svg"
+              src="/logo/Logo AIMSURE 1.png"
               alt="AIMSURE Logo"
               width={128}
               height={128}

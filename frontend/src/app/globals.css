@@ -7,4 +7,28 @@
   --color-aimsure-blue: #2d336b;
   --color-aimsure-yellow: #ff9b0b;
   --color-aimsure-white: #ffffff;
+  /* --color-aimsure-lavender: #929ec5; */
+  --color-aimsure-lavender: #687cbfff;
+}
+
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-180px * 5 - 4rem * 5));
+  }
+}
+
+.animate-scroll {
+  display: flex;
+  width: calc((180px * 10) + (4rem * 10));
+  animation: scroll 30s linear infinite;
+}
+.animate-scroll:hover {
+  animation-play-state: paused;
+}
+
+html {
+  scroll-behavior: smooth;
 }
