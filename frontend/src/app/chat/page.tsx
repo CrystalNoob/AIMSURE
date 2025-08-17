@@ -84,20 +84,10 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),
       });
+      if (!response.ok) throw new Error(`API error: ${response.statusText}`);
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
-      }
+      const aiMessage: ConversationMessage = await response.json();
 
-      const data = await response.json();
-
-      // IMPORTANT: Here we assume the backend returns a simple text response.
-      // We will need to update this later if the backend can return complex types like checklists or cards.
-      const aiMessage: ConversationMessage = {
-        role: "ai",
-        type: "text",
-        content: data.answer,
-      };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
       console.error("Failed to get response from AI:", error);
@@ -111,77 +101,9 @@ export default function ChatPage() {
       setIsLoading(false);
     }
   };
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   const question = inputValue.trim();
-  //   if (!question || isLoading) return;
-
-  //   const userMessage: ConversationMessage = {
-  //     role: "user",
-  //     type: "text",
-  //     content: question,
-  //   };
-  //   setMessages((prev) => [...prev, userMessage]);
-  //   setInputValue("");
-  //   setIsLoading(true);
-
-  //   // Add a placeholder for the AI's response
-  //   const aiMessagePlaceholder: ConversationMessage = {
-  //     role: "ai",
-  //     type: "text",
-  //     content: "",
-  //   };
-  //   setMessages((prev) => [...prev, aiMessagePlaceholder]);
-
-  //   try {
-  //     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  //     const response = await fetch(`${apiUrl}/invoke/${sessionId}`, {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ question }),
-  //     });
-
-  //     if (!response.body) {
-  //       throw new Error("Response body is null");
-  //     }
-
-  //     const reader = response.body.getReader();
-  //     const decoder = new TextDecoder();
-
-  //     // Read the stream
-  //     while (true) {
-  //       const { done, value } = await reader.read();
-  //       if (done) {
-  //         break;
-  //       }
-  //       const chunk = decoder.decode(value);
-  //       // Update the last message (the AI placeholder) with the new chunk
-  //       setMessages((prev) => {
-  //         const lastMessage = prev[prev.length - 1];
-  //         if (lastMessage && lastMessage.role === "ai") {
-  //           lastMessage.content += chunk;
-  //           return [...prev.slice(0, -1), lastMessage];
-  //         }
-  //         return prev;
-  //       });
-  //     }
-  //   } catch (error) {
-  //     console.error("Failed to read stream:", error);
-  //     setMessages((prev) => {
-  //       const lastMessage = prev[prev.length - 1];
-  //       if (lastMessage && lastMessage.role === "ai") {
-  //         lastMessage.content = "Sorry, I ran into an error.";
-  //         return [...prev.slice(0, -1), lastMessage];
-  //       }
-  //       return prev;
-  //     });
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   const handleGenerateClick = () => {
-    router.push("/results");
+    router.push(`/results?sessionId=${sessionId}`);
   };
 
   const shouldShowGenerateButton = useMemo(() => {

@@ -9,3 +9,4 @@ sandbox/
 __pycache__/
 aimsure*.json
 *.txt
+main_backup.py

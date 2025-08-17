@@ -3,11 +3,16 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { BusinessProfilePDF } from "@/components/templates/BusinessProfilePDF";
+import { BusinessProfileData } from "@/components/templates/BusinessProfilePDF";
+import { useSearchParams } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 
 type Document = {
   name: string;
-  content: string;
+  structuredContent: BusinessProfileData;
 };
 
 function LoadingScreen() {
@@ -32,34 +37,58 @@ function LoadingScreen() {
 export default function ResultsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const fetchDocuments = async () => {
-      // ? testing
-      const session_id = "test-session-123";
+    const sessionId = searchParams.get("sessionId");
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const response = await fetch(
-        `${apiUrl}/generate-documents/${session_id}`,
-        { method: "POST" }
-      );
-      const data = await response.json();
+    if (sessionId) {
+      const fetchDocuments = async () => {
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+          const response = await fetch(
+            `${apiUrl}/generate-documents/${sessionId}`,
+            { method: "POST" }
+          );
+          if (!response.ok) {
+            throw new Error("Failed to fetch documents from the server.");
+          }
+          const data = await response.json();
+          setDocuments(data.documents);
+        } catch (err) {
+          console.error(err);
+          if (err instanceof Error) {
+            setError(err.message);
+          } else {
+            setError("An unknown error occurred. Please try again.");
+          }
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      const timer = setTimeout(() => {
+        fetchDocuments();
+      }, 2000);
 
-      setDocuments(data.documents);
+      return () => clearTimeout(timer);
+    } else {
+      console.error("No Session ID found in URL");
+      setError("No Session ID was found. Please start the chat again.");
       setIsLoading(false);
-    };
-
-    const timer = setTimeout(() => {
-      fetchDocuments();
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
+    }
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-aimsure-blue text-white p-8">
       {isLoading ? (
         <LoadingScreen />
+      ) : error ? (
+        <div className="flex flex-col justify-center items-center h-screen -my-8 text-center space-y-4">
+          <AlertTriangle className="h-16 w-16 text-red-400" />
+          <h1 className="text-3xl font-heading font-bold">An Error Occurred</h1>
+          <p className="font-lato text-red-300 max-w-md">{error}</p>
+        </div>
       ) : (
         <div className="container mx-auto">
           <div className="flex justify-center mb-8">
@@ -87,9 +116,20 @@ export default function ResultsPage() {
                     This document has been generated based on your profile and
                     financial information.
                   </p>
-                  <Button className="w-full bg-aimsure-yellow hover:bg-yellow-500 text-black font-heading">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download
+                  <Button
+                    asChild
+                    className="w-full bg-aimsure-yellow hover:bg-yellow-500 text-black font-heading"
+                  >
+                    <PDFDownloadLink
+                      document={
+                        <BusinessProfilePDF data={doc.structuredContent} />
+                      }
+                      fileName={`${doc.name}.pdf`}
+                    >
+                      {({ loading }) =>
+                        loading ? "Loading document..." : "Download"
+                      }
+                    </PDFDownloadLink>
                   </Button>
                 </CardContent>
               </Card>
