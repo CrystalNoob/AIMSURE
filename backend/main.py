@@ -20,7 +20,6 @@ from pathlib import Path
 # * new stuffs for chat history
 from ai.history import get_session_history
 from google.cloud.firestore_v1.vector import Vector
-from langchain_core.documents import Document
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
 
@@ -220,6 +219,25 @@ class DocumentResponse(BaseModel):
     documents: list[DocumentCustom]
 
 
+def save_generated_documents_to_firestore(session_id: str, documents: list[dict]):
+    """
+    Save the generated documents to Firestore, hopefully anyway
+    """
+    collection_ref = db.collection("user_document_results")
+
+    for doc in documents:
+        try:
+            document_data = {
+                "session_id": session_id,
+                "name": doc["name"],
+                "content": doc["content"],
+            }
+            _ = collection_ref.add(document_data)
+
+        except Exception as e:
+            raise e
+
+
 @app.post("/generate-documents/{session_id}", response_model=DocumentResponse)
 async def generate_documents(session_id: str) -> dict[str, list[dict]]:
     print(f"Generating final documents for session: {session_id}")
@@ -260,6 +278,12 @@ async def generate_documents(session_id: str) -> dict[str, list[dict]]:
             },
         ]
     }
+
+    save_generated_documents_to_firestore(
+        session_id,
+        mock_documents["documents"],
+    )
+
     return mock_documents
 
 
