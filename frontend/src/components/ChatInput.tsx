@@ -11,7 +11,7 @@ export function ChatInput(props: ChatInputProps) {
     <div className="relative w-full">
       <Input
         type="text"
-        placeholder="Tanyakan sesuatu..."
+        placeholder="Describe your business and loan need..."
         className="rounded-full pr-12 h-12"
         {...props}
       />

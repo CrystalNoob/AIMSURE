@@ -40,15 +40,14 @@ type BankResultsMessage = {
 
 const INITIAL_MESSAGE: ConversationMessage = {
   role: "ai",
-  type: "checklist",
-  content: [
-    "Hi! First, let's check what information you already have so I can prepare the right document template.",
-    "So, do you have this documents?",
-    "• Do you have a National ID (NIK)?",
-    "• Do you have a Tax Number (NPWP)?",
-    "• Do you have a Business Identification Number (NIB) or Business License (SIUP)?",
-    "• Do you know your KBLI code (business classification code)?",
-  ],
+  type: "text",
+  content: `Welcome to AIMSURE!
+
+I'm here to help you prepare all the necessary financial documents to make your business bankable.
+
+To get started, please tell me a little bit about your business and what you need the loan for. For example:
+
+*"Hi, I run a coffee shop and I need a 50 million rupiah loan to buy a new espresso machine."*`,
 };
 
 type ConversationMessage = TextMessage | ChecklistMessage | BankResultsMessage;
