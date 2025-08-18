@@ -1,7 +1,7 @@
 import os
 import textwrap
 import uvicorn
-from typing import TypedDict, Union, Any, cast
+from typing import TypedDict, Any, cast
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
@@ -11,8 +11,8 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 
-from langgraph.graph import START
-from langgraph.graph.state import CompiledStateGraph, StateGraph
+# from langgraph.graph import START
+from langgraph.graph.state import StateGraph
 from pathlib import Path
 
 # * new stuffs for chat history
@@ -23,7 +23,7 @@ from google.cloud import firestore
 from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
 from fastapi.middleware.cors import CORSMiddleware
 
-from fastapi.responses import StreamingResponse
+# from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 # ? hardcoded path, supaya ga ke overwritten sama variable dari environment os wkwk. harusny skrng .env pake google api key service account
@@ -57,10 +57,37 @@ except Exception as e:
     exit(1)  #  this counts as abnormal exit, right?
 
 
+# template: str = textwrap.dedent(
+#     """Anda adalah asisten yang bertugas untuk membantu pemilik UMKM untuk membuat sebuah proposal pinjaman/kredit usaha kepada Bank.
+#     Gunakan parameter berikut untuk membuat proposal.
+#     Jika nama Bank tidak ada di `context`, katakan Bank tidak ada di basis data dan berhenti."""
+# )
+
 template: str = textwrap.dedent(
-    """Anda adalah asisten yang bertugas untuk membantu pemilik UMKM untuk membuat sebuah proposal pinjaman/kredit usaha kepada Bank.
-    Gunakan parameter berikut untuk membuat proposal.
-    Jika nama Bank tidak ada di `context`, katakan Bank tidak ada di basis data dan berhenti."""
+    """
+    **Persona:**
+    You are "AIMSURE," a professional, friendly, and highly competent financial assistant for Indonesian Micro, Small, and Medium Enterprises (UMKM). Your tone is encouraging and you always use clear, easy-to-understand language, avoiding technical jargon unless you explain it simply.
+
+    **Primary Goal:**
+    Your main goal is to help a user get the best possible bank loan recommendation by guiding them through a conversation to build their business profile.
+
+    **Process:**
+    1.  **Greeting & Profiling:** Start by greeting the user and asking open-ended questions to understand their business (name, industry, revenue, specific needs).
+    2.  **Information Gathering:** Continue asking targeted questions one by one until you have enough information to make a recommendation.
+    3.  **Recommendation:** Once you have sufficient information and have retrieved relevant bank products from your context, provide a recommendation.
+
+    **Constraints:**
+    -   **Be Bilingual:** Your primary language is Bahasa Indonesia, but you are fluent in English. **Always respond in the same language the user is using.**
+    -   **Base your final recommendation *only* on the information provided in the `context`.** Do not invent or use outside knowledge for bank product details.
+    -   If the `context` is empty or does not contain a suitable bank, state that you couldn't find a specific match and provide a general list of all available banks as a helpful guide. Do not apologize excessively.
+    -   Keep your answers concise and focused on the current step of the process.
+
+    **Examples of Interaction:**
+    -   **User (in Indonesian):** "Hi, saya punya warung kopi dan butuh 50jt."
+    -   **You (respond in Indonesian):** "Tentu, saya bisa bantu. Boleh tahu berapa rata-rata pendapatan bulanan warung Anda?"
+    -   **User (in English):** "Hi, I run a small IT service company."
+    -   **You (respond in English):** "Great! I can help with that. To start, what is your average monthly revenue?"
+    """
 )
 
 prompt_template: ChatPromptTemplate = ChatPromptTemplate.from_messages(
@@ -150,6 +177,21 @@ def generate(state: State) -> dict[str, Any]:
     """
     print("---NODE: GENERATE FINAL RESPONSE---")
 
+    # context = state.get("context", [])
+    context = state["context"]
+
+    if not context:
+        print("---INFO: No context found, using fallback response.---")
+        fallback_prompt = ChatPromptTemplate.from_template(
+            "You are a helpful financial assistant. Your current task is to inform the user that no specific bank recommendations could be found for their request. "
+            "First, write a brief, friendly message explaining this. "
+            "Then, as a helpful alternative, provide a simple list of the banks you have general information about. "
+            "The banks are: BCA, BNI, BRI, BSI, and BTN."
+        )
+        generation_chain = fallback_prompt | llm
+        response = generation_chain.invoke({})
+        return {"answer": {"role": "ai", "type": "text", "content": response.content}}
+
     structured_prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -186,21 +228,33 @@ def update_profile(state: State) -> dict[str, CompleteMSMEProfile]:
     """Node to check the history and update the MSME profile."""
     print("---NODE: UPDATING PROFILE---")
 
+    # profile_extractor_prompt = ChatPromptTemplate.from_messages(
+    #     [
+    #         (
+    #             "system",
+    #             "Based on the conversation history, extract or update the user's business profile information. Only fill in fields that are explicitly mentioned.",
+    #         ),
+    #         ("human", "Conversation History:\n{history}"),
+    #     ]
+    # )
     profile_extractor_prompt = ChatPromptTemplate.from_messages(
         [
             (
                 "system",
-                "Based on the conversation history, extract or update the user's business profile information. Only fill in fields that are explicitly mentioned.",
+                "Based on the latest user message in the conversation history, extract or update the user's business profile information. Only fill in fields that are explicitly mentioned in the last message.",
             ),
-            ("human", "{history}"),
+            ("human", "Conversation History:\n{history}"),
         ]
     )
+
     extractor_chain = profile_extractor_prompt | llm.with_structured_output(
         CompleteMSMEProfile
     )
 
-    current_profile = state.get("profile", CompleteMSMEProfile())
-    history = state.get("history", [])
+    # current_profile = state.get("profile", CompleteMSMEProfile())
+    current_profile = state["profile"]
+    # history = state.get("history", [])
+    history = state["history"]
 
     updated_profile_data = extractor_chain.invoke({"history": history})
     structured_update = cast(CompleteMSMEProfile, updated_profile_data)
@@ -242,7 +296,8 @@ def ask_question(state: State) -> dict[str, Any]:
 def route_after_profile_update(state: State) -> str:
     """Router to decide where to go after updating the profile."""
     print("---ROUTER: DECIDING NEXT STEP---")
-    profile = state.get("profile", CompleteMSMEProfile())
+    # profile = state.get("profile", CompleteMSMEProfile())
+    profile = state["profile"]
 
     if (
         profile.business_name

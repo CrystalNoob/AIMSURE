@@ -60,7 +60,7 @@ I'm here to help you prepare the necessary documents to make your business banka
 **How to get started:**
 Just tell me about your business and your financial needs. For example:
 *"Hi, I run a coffee shop and I need a 50 million rupiah loan to buy a new espresso machine."*
-
+*"Or , just say Hi!"*
 ---
 ***MVP Disclaimer:*** *For this hackathon demo, I can generate a **Business Profile** document. In the full version, I'll also be able to generate your **Cash Flow Statement**, **Profit & Loss Report**, and a **Loan Proposal**.*
 ***MVP Disclaimer:*** *I'm currently only have RAG access to Banks listed in the home page. So it is better to provide information in Indonesia (e.g. Rupiah with amounts up to 50 Milion IDR)*`,
