@@ -19,7 +19,7 @@ export function Features() {
           {/* Left Side: Graphic */}
           <div>
             <div className="w-full h-64 bg-slate-200 rounded-lg flex justify-center items-center">
-              <p className="text-gray-500">Graphic Asset Here</p>
+              <p className="text-gray-500">Image Coming Soon</p>
             </div>
           </div>
 
