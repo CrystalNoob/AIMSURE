@@ -1,7 +1,10 @@
 import Image from "next/image";
 
 export function HowItWorks() {
-  const videoId = "1E6QrIedofdkNZuGrt_Y8Ilm3G-7sdoNb";
+  // const videoId = "1E6QrIedofdkNZuGrt_Y8Ilm3G-7sdoNb";
+
+  const videoId = "1cSyNI_tVY_oq1--BtVBFIWrW6_wIzkVz";
+
   const embedUrl = `https://drive.google.com/file/d/${videoId}/preview`;
   return (
     <section id="how-to-use" className="bg-aimsure-blue py-20 px-8 text-white">
