@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { PlayIcon } from "lucide-react";
 
 export function HowItWorks() {
   const videoId = "1E6QrIedofdkNZuGrt_Y8Ilm3G-7sdoNb";
@@ -18,7 +17,6 @@ export function HowItWorks() {
         </h2>
 
         <div className="w-full max-w-3xl space-y-4">
-          {/* 3. Use an iframe to embed the video */}
           <div className="aspect-video w-full bg-black rounded-2xl shadow-lg overflow-hidden">
             <iframe
               src={embedUrl}
