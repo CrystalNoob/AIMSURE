@@ -180,17 +180,18 @@ def generate(state: State) -> dict[str, Any]:
     # context = state.get("context", [])
     context = state["context"]
 
-    if not context:
-        print("---INFO: No context found, using fallback response.---")
-        fallback_prompt = ChatPromptTemplate.from_template(
-            "You are a helpful financial assistant. Your current task is to inform the user that no specific bank recommendations could be found for their request. "
-            "First, write a brief, friendly message explaining this. "
-            "Then, as a helpful alternative, provide a simple list of the banks you have general information about. "
-            "The banks are: BCA, BNI, BRI, BSI, and BTN."
-        )
-        generation_chain = fallback_prompt | llm
-        response = generation_chain.invoke({})
-        return {"answer": {"role": "ai", "type": "text", "content": response.content}}
+    # TODO: add better falbback result
+    # if not context:
+    #     print("---INFO: No context found, using fallback response.---")
+    #     fallback_prompt = ChatPromptTemplate.from_template(
+    #         "You are a helpful financial assistant. Your current task is to inform the user that no specific bank recommendations could be found for their request. "
+    #         "First, write a brief, friendly message explaining this. "
+    #         "Then, as a helpful alternative, provide a simple list of the banks you have general information about. "
+    #         "The banks are: BCA, BNI, BRI, BSI, and BTN."
+    #     )
+    #     generation_chain = fallback_prompt | llm
+    #     response = generation_chain.invoke({})
+    #     return {"answer": {"role": "ai", "type": "text", "content": response.content}}
 
     structured_prompt = ChatPromptTemplate.from_messages(
         [
