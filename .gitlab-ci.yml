@@ -14,8 +14,8 @@ variables:
 cache:
   key: ${CI_COMMIT_REF_SLUG}
   paths:
-    - node_modules/
-    - .next/cache/
+    - frontend/node_modules/
+    - frontend/.next/cache/
 
 stages: # List of stages for jobs, and their order of execution
   - build
